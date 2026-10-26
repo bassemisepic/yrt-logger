@@ -1,0 +1,1 @@
+date,route,trip_id,stop_id,scheduled,actual,delay_min,last_seen_gap_s,cancelled
