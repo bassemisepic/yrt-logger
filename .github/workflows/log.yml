@@ -1,0 +1,36 @@
+name: YRT delay logger
+on:
+  schedule:
+    - cron: "20 10 * * 1-5"   # 10:20 UTC weekdays; the script waits until 6:30 Toronto time
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Quick test only"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests gtfs-realtime-bindings pandas
+      - name: Quick test
+        if: github.event_name == 'workflow_dispatch' && inputs.test
+        run: python yrt_logger.py test
+      - name: Log this morning
+        if: github.event_name == 'schedule' || !inputs.test
+        run: python yrt_logger.py
+      - name: Save results
+        if: github.event_name == 'schedule' || !inputs.test
+        run: |
+          git config user.name "yrt-logger"
+          git config user.email "actions@users.noreply.github.com"
+          git add yrt_delays.csv
+          git commit -m "Delays for $(TZ=America/Toronto date +%F)" || echo "nothing to commit"
+          git push
